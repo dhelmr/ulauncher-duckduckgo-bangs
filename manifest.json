@@ -1,0 +1,15 @@
+{
+    "required_api_version": "^2.0.0",
+    "name": "Duckduckgo bangs",
+    "description": "Duckduckgo bangs extension",
+    "developer_name": "dhelmr",
+    "icon": "images/icon.png",
+    "preferences": [
+        {
+            "id": "keyword",
+            "type": "keyword",
+            "name": "keyword",
+            "default_value": "!"
+        }
+    ]
+}
