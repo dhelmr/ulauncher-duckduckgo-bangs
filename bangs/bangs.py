@@ -9,7 +9,7 @@ URL_PLACEHOLDER = "{{{s}}}"
 DEFAULT_BANGS_URL = "https://duckduckgo.com/bang.js"
 
 @dataclass
-class BangsEntry:
+class DBang:
     category: str
     subcategory: str
     domain: str
@@ -21,17 +21,17 @@ class BangsEntry:
     def get_url(self, term):
         return self.url.replace(URL_PLACEHOLDER, term)
 
-class Bangs:
+class DBangs:
     def __init__(self, js_file=None, bangs=None):
         if js_file is not None:
             self.load_from_file(js_file)
 
-    def load_from_file(self, js_file):
+    def load_from_file(self, js_file) -> None:
         with open(js_file, "r",  encoding='utf-8') as file:
             data = file.read()
 
         def map_json(entry):
-            return BangsEntry(category=entry.get("c", ""),
+            return DBang(category=entry.get("c", ""),
                               subcategory=entry.get("sc", ""),
                               domain=entry.get("d", ""),
                               url=entry.get("u", ""),
@@ -51,10 +51,10 @@ class Bangs:
         for bang in self.bangs:
             self._by_terms[bang.t] = bang
 
-    def match_exactly(self, bang_term):
+    def match_exactly(self, bang_term: str) -> DBang:
         return self._by_terms.get(bang_term, None)
 
-    def search(self, contains: list):
+    def search(self, contains: list) -> list:
         u_contains = [s.upper() for s in contains]
         def filter_bang_entry(bang):
             for term in u_contains:
@@ -64,6 +64,9 @@ class Bangs:
         filteredBangs = filter(filter_bang_entry, self.bangs)
         orderedBangs = sorted(filteredBangs, key=lambda entry: entry.r, reverse=True)
         return orderedBangs
+
+    def __iter__(self):
+        return iter(self.bangs)
 
 class BangsManager:
     def __init__(self, storage_path="./.bangs-cache"):
@@ -85,5 +88,5 @@ class BangsManager:
         latest_file_path = self._make_latest_file()
         if force_download or not os.path.exists(latest_file_path):
             self.download_latest_bangs()
-        return Bangs(latest_file_path)
+        return DBangs(latest_file_path)
         

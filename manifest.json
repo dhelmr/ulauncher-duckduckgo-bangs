@@ -3,13 +3,20 @@
     "name": "Duckduckgo bangs",
     "description": "Duckduckgo bangs extension",
     "developer_name": "dhelmr",
-    "icon": "images/icon.png",
+    "icon": "icons/bang.svg",
     "preferences": [
         {
             "id": "keyword",
             "type": "keyword",
-            "name": "keyword",
+            "name": "Duckduckgo bangs",
             "default_value": "!"
+        },
+        {
+            "id": "max_results",
+            "type": "select",
+            "name": "Maximum number of results",
+            "default_value": "8",
+            "options": ["3","4","5","6","7","8","9","10","11","12"]
         }
     ]
 }
