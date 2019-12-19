@@ -4,12 +4,12 @@ from dataclasses import dataclass
 from tempfile import NamedTemporaryFile
 import urllib.request
 from urllib.parse import quote
-import os.path 
-
+import os.path
 
 
 URL_PLACEHOLDER = "{{{s}}}"
 DEFAULT_BANGS_URL = "https://duckduckgo.com/bang.js"
+
 
 @dataclass
 class DBang:
@@ -24,6 +24,7 @@ class DBang:
     def get_url(self, term):
         return self.url.replace(URL_PLACEHOLDER, quote(term, safe="/"))
 
+
 class DBangs:
     def __init__(self, js_file=None, bangs=None):
         if js_file is not None:
@@ -35,12 +36,12 @@ class DBangs:
 
         def map_json(entry):
             return DBang(category=entry.get("c", ""),
-                              subcategory=entry.get("sc", ""),
-                              domain=entry.get("d", ""),
-                              url=entry.get("u", ""),
-                              t=entry.get("t", ""),
-                              site=entry.get("s", ""),
-                              r=entry.get("r", 0))
+                         subcategory=entry.get("sc", ""),
+                         domain=entry.get("d", ""),
+                         url=entry.get("u", ""),
+                         t=entry.get("t", ""),
+                         site=entry.get("s", ""),
+                         r=entry.get("r", 0))
 
         obj = json.loads(data)
         if type(obj) is not list:
@@ -59,17 +60,20 @@ class DBangs:
 
     def search(self, contains: list) -> list:
         u_contains = [s.upper() for s in contains]
+
         def filter_bang_entry(bang):
             for term in u_contains:
                 if term not in bang.site.upper() and term not in bang.domain.upper() and term not in bang.t.upper():
                     return False
             return True
         filteredBangs = filter(filter_bang_entry, self.bangs)
-        orderedBangs = sorted(filteredBangs, key=lambda entry: entry.r, reverse=True)
+        orderedBangs = sorted(
+            filteredBangs, key=lambda entry: entry.r, reverse=True)
         return orderedBangs
 
     def __iter__(self):
         return iter(self.bangs)
+
 
 class BangsManager:
     def __init__(self, storage_path="./.bangs-cache"):
@@ -77,7 +81,7 @@ class BangsManager:
 
     def download(self, url, destination):
         urllib.request.urlretrieve(url, destination)
-        
+
     def download_latest_bangs(self, url=DEFAULT_BANGS_URL, destination=None):
         if destination is None:
             destination = self._make_latest_file()
@@ -87,9 +91,8 @@ class BangsManager:
     def _make_latest_file(self):
         return os.path.join(self.storage_path, "bang.js")
 
-    def get_latest(self, force_download = False):
+    def get_latest(self, force_download=False):
         latest_file_path = self._make_latest_file()
         if force_download or not os.path.exists(latest_file_path):
             self.download_latest_bangs()
         return DBangs(latest_file_path)
-        

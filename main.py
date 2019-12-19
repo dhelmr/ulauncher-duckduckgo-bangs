@@ -14,6 +14,8 @@ from ulauncher.api.shared.action.DoNothingAction import DoNothingAction
 from ulauncher.api.shared.action.OpenUrlAction import OpenUrlAction
 from ulauncher.api.shared.action.SetUserQueryAction import SetUserQueryAction
 import os.path
+import html
+import re
 
 storage_path = os.path.join(os.path.dirname(__file__), ".bangs-cache")
 extension_icon = "icons/bang.svg"
@@ -65,7 +67,7 @@ class KeywordQueryEventListener(EventListener):
 
             # generate the query that will be set if the user chooses this action
             new_query = self._make_query(extension, entry)
-            title = "{0} | {1} | {2}".format(entry.t, entry.site.capitalize(), self.make_bang_description(
+            title = "{0} | {1} | {2}".format(entry.t, self.make_site_title(entry), self.make_bang_description(
                 entry))
             items.append(ExtensionSmallResultItem(name=title,
                                                   icon=extension.icons.get_icon_path(
@@ -83,7 +85,7 @@ class KeywordQueryEventListener(EventListener):
             search_text = " ".join(search_terms[1:])
             url = dbang.get_url(search_text)
             title = "{0} | {1}: Search for {2}".format(
-                dbang.t, dbang.site.capitalize(), search_text)
+                dbang.t, self.make_site_title(dbang), search_text)
             return ExtensionResultItem(name=title,
                                        description=self.make_bang_description(
                                            dbang),
@@ -92,7 +94,7 @@ class KeywordQueryEventListener(EventListener):
                                        on_enter=OpenUrlAction(url))
         else:
             title = "{0} | {1}: Enter search term".format(
-                dbang.t, dbang.site.capitalize())
+                dbang.t, self.make_site_title(dbang))
             new_query = self._make_query(extension, dbang)
             return ExtensionResultItem(name=title,
                                        icon=extension.icons.get_icon_path(
@@ -100,6 +102,14 @@ class KeywordQueryEventListener(EventListener):
                                        description=self.make_bang_description(
                                            dbang),
                                        on_enter=SetUserQueryAction(new_query))
+
+    def make_site_title(self, dbang):
+        """ Returns the capitalized title for the dbang entry"""
+        if re.match(r".*<.*>.*", dbang.site) is not None:
+            # Dirty fix for escaping this sequenceste
+            # if there is an empty html tag "< ... >" in the title, ulauncher will fail to display it
+            return html.escape(dbang.site.capitalize())
+        return dbang.site.capitalize()
 
     def _make_query(self, extension, bangs_entry):
         """Generates and returns the ulauncher user query for a given DBang entry"""
