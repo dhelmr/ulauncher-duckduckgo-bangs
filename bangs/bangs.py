@@ -3,7 +3,10 @@ import json
 from dataclasses import dataclass
 from tempfile import NamedTemporaryFile
 import urllib.request
+from urllib.parse import quote
 import os.path 
+
+
 
 URL_PLACEHOLDER = "{{{s}}}"
 DEFAULT_BANGS_URL = "https://duckduckgo.com/bang.js"
@@ -19,7 +22,7 @@ class DBang:
     t: str
 
     def get_url(self, term):
-        return self.url.replace(URL_PLACEHOLDER, term)
+        return self.url.replace(URL_PLACEHOLDER, quote(term, safe="/"))
 
 class DBangs:
     def __init__(self, js_file=None, bangs=None):
