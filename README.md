@@ -18,4 +18,4 @@ You need Python 3 and Ulauncher >= 5 (Extension API 2.0).
 
 # License 
 
-[Licensed under GPLv3](LICENSE)
+[Licensed under GPLv3](LICENSE.txt)
