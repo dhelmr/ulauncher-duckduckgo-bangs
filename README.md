@@ -14,7 +14,7 @@ Have a look at [the Ulauncher page](https://ext.ulauncher.io/) for more informat
 
 # Requirements
 
-You need Python 3 and Ulauncher >= 5 (Extension API 2.0).
+You need Python 3.7 and Ulauncher >= 5 (Extension API 2.0).
 
 # License 
 
