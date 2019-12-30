@@ -1,6 +1,5 @@
 import sys
 import json
-from dataclasses import dataclass
 from tempfile import NamedTemporaryFile
 import urllib.request
 from urllib.parse import quote
@@ -10,8 +9,6 @@ import os.path
 URL_PLACEHOLDER = "{{{s}}}"
 DEFAULT_BANGS_URL = "https://duckduckgo.com/bang.js"
 
-
-@dataclass
 class DBang:
     category: str
     subcategory: str
@@ -20,6 +17,15 @@ class DBang:
     site: str
     r: int
     t: str
+
+    def __init__(self, category, subcategory, domain, url, site, r, t):
+        self.category = category
+        self.subcategory = subcategory
+        self.domain = domain
+        self.url = url
+        self.site = site
+        self.r = r
+        self.t = t
 
     def get_url(self, term):
         return self.url.replace(URL_PLACEHOLDER, quote(term, safe="/"))
