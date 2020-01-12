@@ -18,7 +18,9 @@ You need Python 3.7 and Ulauncher >= 5 (Extension API 2.0).
 
 # How does it work?
 
-The information for the bangs can be downloaded from [DuckDuckGo as a JSON file](https://duckduckgo.com/bang.js). This is what the extension does in the background. It then uses this information (the bang keywords, names, categories and urls) to show you the list in Ulauncher. That means no requests to DuckDuckGo are made: When you type `! w Linux`, the Web Browser will directly go to `https://en.wikipedia.org/wiki/Special:Search?search=Linux` and not first open a DuckDuckGo search with `!w Linux`. In this manner using the bangs from this extension is potentially faster than from DuckDuckGo.
+The information for the bangs can be downloaded from [DuckDuckGo as a JSON file](https://duckduckgo.com/bang.js), and this is what the extension does in the background. It then uses this information (the bang keywords, names, categories and urls) to show you the list in Ulauncher. 
+
+By the extension no requests to DuckDuckGo are made: When you type `! w Linux`, the Web Browser will directly go to `https://en.wikipedia.org/wiki/Special:Search?search=Linux` and not first open a DuckDuckGo search with `!w Linux`. In this manner using the bangs from this extension is potentially faster than from DuckDuckGo.
 
 # License 
 
