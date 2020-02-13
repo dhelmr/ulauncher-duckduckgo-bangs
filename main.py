@@ -75,7 +75,7 @@ class KeywordQueryEventListener(EventListener):
                                                   on_enter=SetUserQueryAction(new_query)))
             used_urls.append(entry.url)
             counter += 1
-            if counter > max_results:
+            if counter >= max_results:
                 break
 
         return RenderResultListAction(items)
