@@ -17,6 +17,13 @@
             "name": "Maximum number of results",
             "default_value": "8",
             "options": ["3","4","5","6","7","8","9","10","11","12"]
+        },
+        {
+            "id": "force_download",
+            "type": "select",
+            "name": "Always download bangs from DuckDuckGo on startup (~2.5MB). Turn off if you have a slow / cost-intensive connection.",
+            "default_value": "True",
+            "options": ["True", "False"]
         }
     ]
 }

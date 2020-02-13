@@ -6,6 +6,7 @@ from bangs.bangs import DBang
 from ulauncher.api.client.Extension import Extension
 from ulauncher.api.client.EventListener import EventListener
 from ulauncher.api.shared.event import KeywordQueryEvent
+from ulauncher.api.shared.event import PreferencesEvent
 from ulauncher.api.shared.item.ExtensionResultItem import ExtensionResultItem
 from ulauncher.api.shared.item.ExtensionSmallResultItem import ExtensionSmallResultItem
 from ulauncher.api.shared.action.RenderResultListAction import RenderResultListAction
@@ -23,33 +24,57 @@ bang_selected_icon = "icons/arrow-right.svg"
 unknown_icon = "icons/unknown.svg"
 favicons_path = "icons/pages_colors"
 icons_zip = "icons.zip"
-bangs = BangsManager(storage_path).get_latest()
 
 
 class DBangsExtension(Extension):
     def __init__(self):
         super(DBangsExtension, self).__init__()
-        self.subscribe(KeywordQueryEvent, KeywordQueryEventListener())
-        self.icons = DomainIconsManager(
-            icons_zip, favicons_path, bangs, unknown_icon)
-
-
-class KeywordQueryEventListener(EventListener):
+        self.ready = False
+        self.subscribe(KeywordQueryEvent, DBangsKeywordQueryListener())
+        self.subscribe(PreferencesEvent, PreferencesEventListener())
+        
+class PreferencesEventListener(EventListener):
+    def on_event(self, event, extension):
+        print(event.preferences, extension, "LOADED")
+        force_download = bool(event.preferences["force_download"])
+        extension.bangs = BangsManager(storage_path).get_latest(force_download=force_download)
+        extension.icons = DomainIconsManager(
+            icons_zip, favicons_path, extension.bangs, unknown_icon)
+        extension.ready = True
+        
+class DBangsKeywordQueryListener(EventListener):
 
     def on_event(self, event, extension):
+        if not extension.ready:
+            # dbangs and icons are not loaded yet, do nothing...
+            return self.do_nothing_result("The extension is not loaded yet, wait a bit...")
+
         argument = event.get_argument()
         if argument is None or argument == "":
-            return RenderResultListAction([
+            return self.do_nothing_result("Search for DuckDuckGo bangs...")
+
+        search_terms = argument.split(" ")
+        items = self.make_bangs_results(extension, search_terms)
+
+        return RenderResultListAction(items)
+
+    def do_nothing_result(self, text):
+        return RenderResultListAction([
                 ExtensionResultItem(icon=extension_icon,
-                                    name='Search for DuckDuckGo bangs...',
+                                    name=text,
                                     on_enter=DoNothingAction())
             ])
-        search_terms = argument.split(" ")
+
+    def make_bangs_results(self, extension, search_terms: list):
+        """
+        Searches for DBangs using the search terms and checks if the first search terms already matches a known DBang.
+        Creates the ResultItems and returns them.
+        """
         items = []
         used_urls = []  # contains a list of shown urls, for making sure that no url is shown twice
 
         # check if the first string already matches a term of any dbang.
-        matches_exactly: DBang = bangs.match_exactly(search_terms[0])
+        matches_exactly: DBang = extension.bangs.match_exactly(search_terms[0])
         if matches_exactly is not None:
             item = self._generate_result_item_from_exact_match(
                 extension, dbang=matches_exactly, search_terms=search_terms)
@@ -58,7 +83,7 @@ class KeywordQueryEventListener(EventListener):
 
         # search in all DBangs for the typed terms
         max_results = int(extension.preferences["max_results"])
-        results = bangs.search(contains=search_terms)
+        results = extension.bangs.search(contains=search_terms)
         counter = 0
         for entry in results:
             # make sure that no url is shown twice
@@ -77,8 +102,7 @@ class KeywordQueryEventListener(EventListener):
             counter += 1
             if counter >= max_results:
                 break
-
-        return RenderResultListAction(items)
+        return items
 
     def _generate_result_item_from_exact_match(self, extension, dbang: DBang, search_terms: list):
         if len(search_terms) > 1:
