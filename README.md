@@ -28,4 +28,4 @@ By the extension no requests to DuckDuckGo are made: When you type `! w Linux`, 
 
 # License 
 
-[Licensed under GPLv3](LICENSE.txt)
+[Licensed under GPLv3](LICENSE.txt). The duckduckgo icon is separately licensed under [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/), by [DuckDuckGo](https://duckduckgo.com/).
