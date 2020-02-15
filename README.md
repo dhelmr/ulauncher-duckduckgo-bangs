@@ -22,6 +22,10 @@ The information for the bangs can be downloaded from [DuckDuckGo as a JSON file]
 
 By the extension no requests to DuckDuckGo are made: When you type `! w Linux`, the Web Browser will directly go to `https://en.wikipedia.org/wiki/Special:Search?search=Linux` and not first open a DuckDuckGo search with `!w Linux`. In this manner using the bangs from this extension is potentially faster than from DuckDuckGo.
 
+# Known issues
+
+* Combining `&` and html special characters (like `<` or `>`) will result in an empty result item. [See here](https://github.com/Ulauncher/Ulauncher/issues/477) for more information. The item can selected however and the underlying action, e.g. opening the url, will work too.
+
 # License 
 
 [Licensed under GPLv3](LICENSE.txt)
