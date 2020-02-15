@@ -7,6 +7,7 @@ from ulauncher.api.client.Extension import Extension
 from ulauncher.api.client.EventListener import EventListener
 from ulauncher.api.shared.event import KeywordQueryEvent
 from ulauncher.api.shared.event import PreferencesEvent
+from ulauncher.api.shared.event import ItemEnterEvent
 from ulauncher.api.shared.item.ExtensionResultItem import ExtensionResultItem
 from ulauncher.api.shared.item.ExtensionSmallResultItem import ExtensionSmallResultItem
 from ulauncher.api.shared.action.RenderResultListAction import RenderResultListAction
@@ -14,6 +15,7 @@ from ulauncher.api.shared.action.CopyToClipboardAction import CopyToClipboardAct
 from ulauncher.api.shared.action.DoNothingAction import DoNothingAction
 from ulauncher.api.shared.action.OpenUrlAction import OpenUrlAction
 from ulauncher.api.shared.action.SetUserQueryAction import SetUserQueryAction
+from ulauncher.api.shared.action.ExtensionCustomAction import ExtensionCustomAction
 import os.path
 import html
 import re
@@ -32,10 +34,13 @@ class DBangsExtension(Extension):
         self.ready = False
         self.subscribe(KeywordQueryEvent, DBangsKeywordQueryListener())
         self.subscribe(PreferencesEvent, PreferencesEventListener())
+        self.subscribe(ItemEnterEvent, OpenNewestUrlActionListener())
         
 class PreferencesEventListener(EventListener):
+    """
+    Finishes initialization once ulauncher has loaded the preferences
+    """
     def on_event(self, event, extension):
-        print(event.preferences, extension, "LOADED")
         force_download = bool(event.preferences["force_download"])
         extension.bangs = BangsManager(storage_path).get_latest(force_download=force_download)
         extension.icons = DomainIconsManager(
@@ -50,8 +55,9 @@ class DBangsKeywordQueryListener(EventListener):
             return self.do_nothing_result("The extension is not loaded yet, wait a bit...")
 
         argument = event.get_argument()
+        extension.newest_query = argument
         if argument is None or argument == "":
-            return self.do_nothing_result("Search for DuckDuckGo bangs...")
+            return self.do_nothing_result("Enter a term to search for DuckDuckGo Bangs")
 
         search_terms = argument.split(" ")
         items = self.make_bangs_results(extension, search_terms)
@@ -105,17 +111,26 @@ class DBangsKeywordQueryListener(EventListener):
         return items
 
     def _generate_result_item_from_exact_match(self, extension, dbang: DBang, search_terms: list):
+        """
+        Generates the result item for an exact dbang match
+        case 1) the query is already in the correct format: If the user clicks on the item, the url should be opened
+            example: "! w Ulauncher" -> opens a Wikipedia search for Ulauncher in the browser
+        case 2) otherwise the query is set to the right format, with the Dbang term in front
+            example: ! wikipedia search" -> sets the query to "! w ", and in the next query event case 1 will apply
+        """
         if len(search_terms) > 1:
             search_text = " ".join(search_terms[1:])
-            url = dbang.get_url(search_text)
-            title = "{0} | {1}: Search for {2}".format(
+            title = "{0} | {1}: Search for \"{2}\"".format(
                 dbang.t, self.make_site_title(dbang), search_text)
+            # The url is not generated right away, as the search term still change
+            # The ExtensionCustomAction below will be received by OpenNewestUrlActionListener,
+            # which takes the newest query that the user has typed for url generation
             return ExtensionResultItem(name=title,
                                        description=self.make_bang_description(
                                            dbang),
                                        icon=extension.icons.get_icon_path(
                                            dbang),
-                                       on_enter=OpenUrlAction(url))
+                                       on_enter=ExtensionCustomAction(dbang, keep_app_open=True))
         else:
             title = "{0} | {1}: Enter search term".format(
                 dbang.t, self.make_site_title(dbang))
@@ -145,11 +160,33 @@ class DBangsKeywordQueryListener(EventListener):
             entry.domain, entry.category, entry.subcategory)
 
 
+class OpenNewestUrlActionListener(EventListener):
+    """
+    Custom Action that creates the url for a selected dbang from the newest entered query.
+    Due to high latency, the newest query can be different from the one that was present when the ResultItem was generated
+    Example: 
+        1. user types "! wa 2+x=4"
+        2. for each character that the user types, a search is performed and an own result list generated
+        3. The user presses enter instantly after he finishes typing
+        4. The first result item is still showing "! wa 2+x=" (without the last character "4" at the end)
+    This is why the newest query that the user has typed is used here
+    """
+    def on_event(self, event, extension):
+        dbang: DBang = event.get_data()
+        newest_search_text = extension.newest_query[len(dbang.t)+1:]
+        url = dbang.get_url(newest_search_text)
+        return OpenUrlAction(url)
+
+
 def relative_file_exists(file):
     return os.path.exists(os.path.join(os.path.dirname(__file__), file))
 
 
 class DomainIconsManager():
+    """
+    Manages the website icons that are shown in each ResultItem.
+    The icons are bundled in a zip file and are unpacked to a folder once. 
+    """
     def __init__(self, zip_file, folder, dbangs, unknown_icon):
         self.folder = folder
         self.unknown_icon = unknown_icon
@@ -170,7 +207,10 @@ class DomainIconsManager():
         return self.icons_by_site.get(dbang.domain, self.unknown_icon)
 
     def check_favicons(self, full_zip_file, full_expected_path):
-        """The favicons are bundled in a zip file and must be unpacked once"""
+        """
+        The favicons are bundled in a zip file and must be unpacked once. 
+        This method checks if that was already done before.
+        """
         if not os.path.exists(full_expected_path):
             os.mkdir(full_expected_path)
             with zipfile.ZipFile(full_zip_file, 'r') as zip_ref:
