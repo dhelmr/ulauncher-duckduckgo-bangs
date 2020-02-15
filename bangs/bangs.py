@@ -9,6 +9,7 @@ import os.path
 URL_PLACEHOLDER = "{{{s}}}"
 DEFAULT_BANGS_URL = "https://duckduckgo.com/bang.js"
 
+
 class DBang:
     category: str
     subcategory: str

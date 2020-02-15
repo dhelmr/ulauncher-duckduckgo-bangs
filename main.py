@@ -1,5 +1,4 @@
 import os
-import logging
 import zipfile
 from bangs.bangs import BangsManager
 from bangs.bangs import DBang
@@ -18,22 +17,24 @@ from ulauncher.api.shared.action.SetUserQueryAction import SetUserQueryAction
 from ulauncher.api.shared.action.ExtensionCustomAction import ExtensionCustomAction
 import os.path
 import html
-import re
 from enum import Enum
 
 storage_path = os.path.join(os.path.dirname(__file__), ".bangs-cache")
 extension_icon = "icons/ddg_icon.png"
-error_icon =  "icons/bang.svg"
+error_icon = "icons/bang.svg"
 unknown_icon = "icons/unknown.svg"
 favicons_path = "icons/pages_colors"
 icons_zip = "icons.zip"
+
 
 class ExtensionState(Enum):
     STARTING = "Extension is starting..."
     DBANG_LOADING_FAILED = "Could not load successfully. Please restart ulauncher. and check logs"
     READY = "ok"
+
     def __str__(self):
         return self.value
+
 
 class DBangsExtension(Extension):
     def __init__(self):
@@ -48,7 +49,7 @@ class DBangsExtension(Extension):
             self.bangs = BangsManager(storage_path).get_latest(
                 force_download=force_download)
             self.icons = DomainIconsManager(
-            icons_zip, favicons_path, self.bangs, unknown_icon)
+                icons_zip, favicons_path, self.bangs, unknown_icon)
             self.status = ExtensionState.READY
         except Exception as e:
             print("Error while loaded the DuckDuckGo Bangs and Icons", e)
@@ -65,6 +66,7 @@ class PreferencesEventListener(EventListener):
         if event.preferences["force_download"].lower() == "never":
             force_download = False
         extension.load_bangs_and_icons(force_download)
+
 
 class DBangsKeywordQueryListener(EventListener):
 
@@ -124,8 +126,9 @@ class DBangsKeywordQueryListener(EventListener):
 
             # generate the query that will be set if the user chooses this action
             new_query = self._make_query(extension, entry)
-            title = "{0} | {1} | {2}".format(entry.t, self.make_site_title(entry), self.make_bang_description(
+            title = "{0} | {1} | {2}".format(self.escape_html(entry.t), self.make_site_title(entry), self.make_bang_description(
                 entry))
+            print(title)
             items.append(ExtensionSmallResultItem(name=title,
                                                   icon=extension.icons.get_icon_path(
                                                       entry),
@@ -147,34 +150,28 @@ class DBangsKeywordQueryListener(EventListener):
         if len(search_terms) > 1:
             search_text = " ".join(search_terms[1:])
             title = "{0} | {1}: Search for \"{2}\"".format(
-                dbang.t, self.make_site_title(dbang), search_text)
+                dbang.t, self.make_site_title(dbang), self.escape_html(search_text))
             # The url is not generated right away, as the search term still change
             # The ExtensionCustomAction below will be received by OpenNewestUrlActionListener,
             # which takes the newest query that the user has typed for url generation
-            return ExtensionResultItem(name=title,
-                                       description=self.make_bang_description(
-                                           dbang),
-                                       icon=extension.icons.get_icon_path(
-                                           dbang),
-                                       on_enter=ExtensionCustomAction(dbang, keep_app_open=True))
+            action = ExtensionCustomAction(dbang, keep_app_open=True)
+
         else:
             title = "{0} | {1}: Enter search term".format(
                 dbang.t, self.make_site_title(dbang))
             new_query = self._make_query(extension, dbang)
-            return ExtensionResultItem(name=title,
-                                       icon=extension.icons.get_icon_path(
-                                           dbang),
-                                       description=self.make_bang_description(
-                                           dbang),
-                                       on_enter=SetUserQueryAction(new_query))
+            action = SetUserQueryAction(new_query)
+
+        return ExtensionResultItem(name=title,
+                                   icon=extension.icons.get_icon_path(
+                                       dbang),
+                                   description=self.make_bang_description(
+                                       dbang),
+                                   on_enter=action)
 
     def make_site_title(self, dbang):
-        """ Returns the capitalized title for the dbang entry"""
-        if re.match(r".*<.*>.*", dbang.site) is not None:
-            # Dirty fix for escaping this sequenceste
-            # if there is an empty html tag "< ... >" in the title, ulauncher will fail to display it
-            return html.escape(dbang.site.capitalize())
-        return dbang.site.capitalize()
+        """ Returns the capitalized and html-escaped title for the dbang entry"""
+        return self.escape_html(dbang.site.capitalize())
 
     def _make_query(self, extension, bangs_entry):
         """Generates and returns the ulauncher user query for a given DBang entry"""
@@ -184,6 +181,10 @@ class DBangsKeywordQueryListener(EventListener):
         """Returns the description for a given DBang"""
         return "{1} > {2} > {0}".format(
             entry.domain, entry.category, entry.subcategory)
+
+    def escape_html(self, text):
+        escaped = html.escape(text.replace("&", " (and) "))
+        return escaped
 
 
 class OpenNewestUrlActionListener(EventListener):
