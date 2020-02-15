@@ -128,7 +128,6 @@ class DBangsKeywordQueryListener(EventListener):
             new_query = self._make_query(extension, entry)
             title = "{0} | {1} | {2}".format(self.escape_html(entry.t), self.make_site_title(entry), self.make_bang_description(
                 entry))
-            print(title)
             items.append(ExtensionSmallResultItem(name=title,
                                                   icon=extension.icons.get_icon_path(
                                                       entry),
