@@ -19,40 +19,59 @@ from ulauncher.api.shared.action.ExtensionCustomAction import ExtensionCustomAct
 import os.path
 import html
 import re
+from enum import Enum
 
 storage_path = os.path.join(os.path.dirname(__file__), ".bangs-cache")
-extension_icon = "icons/bang.svg"
-bang_selected_icon = "icons/arrow-right.svg"
+extension_icon = "icons/ddg_icon.png"
+error_icon =  "icons/bang.svg"
 unknown_icon = "icons/unknown.svg"
 favicons_path = "icons/pages_colors"
 icons_zip = "icons.zip"
 
+class ExtensionState(Enum):
+    STARTING = "Extension is starting..."
+    DBANG_LOADING_FAILED = "Could not load successfully. Please restart ulauncher. and check logs"
+    READY = "ok"
+    def __str__(self):
+        return self.value
 
 class DBangsExtension(Extension):
     def __init__(self):
         super(DBangsExtension, self).__init__()
-        self.ready = False
+        self.status = ExtensionState.STARTING
         self.subscribe(KeywordQueryEvent, DBangsKeywordQueryListener())
         self.subscribe(PreferencesEvent, PreferencesEventListener())
         self.subscribe(ItemEnterEvent, OpenNewestUrlActionListener())
-        
+
+    def load_bangs_and_icons(self, force_download):
+        try:
+            self.bangs = BangsManager(storage_path).get_latest(
+                force_download=force_download)
+            self.icons = DomainIconsManager(
+            icons_zip, favicons_path, self.bangs, unknown_icon)
+            self.status = ExtensionState.READY
+        except Exception as e:
+            print("Error while loaded the DuckDuckGo Bangs and Icons", e)
+            self.status = ExtensionState.DBANG_LOADING_FAILED
+
+
 class PreferencesEventListener(EventListener):
     """
     Finishes initialization once ulauncher has loaded the preferences
     """
-    def on_event(self, event, extension):
-        force_download = bool(event.preferences["force_download"])
-        extension.bangs = BangsManager(storage_path).get_latest(force_download=force_download)
-        extension.icons = DomainIconsManager(
-            icons_zip, favicons_path, extension.bangs, unknown_icon)
-        extension.ready = True
-        
+
+    def on_event(self, event: PreferencesEvent, extension: DBangsExtension):
+        force_download = True
+        if event.preferences["force_download"].lower() == "never":
+            force_download = False
+        extension.load_bangs_and_icons(force_download)
+
 class DBangsKeywordQueryListener(EventListener):
 
     def on_event(self, event, extension):
-        if not extension.ready:
-            # dbangs and icons are not loaded yet, do nothing...
-            return self.do_nothing_result("The extension is not loaded yet, wait a bit...")
+        # check if extension is ready, otherwise print the current status and abort
+        if extension.status is not ExtensionState.READY:
+            return make_status_result(extension)
 
         argument = event.get_argument()
         extension.newest_query = argument
@@ -64,12 +83,19 @@ class DBangsKeywordQueryListener(EventListener):
 
         return RenderResultListAction(items)
 
-    def do_nothing_result(self, text):
+    def make_status_result(self, extension):
+        icon = extension_icon
+        if extension.status is ExtensionState.DBANG_LOADING_FAILED:
+            icon = error_icon
+        text = str(extension.status)
+        return self.do_nothing_result(text, icon)
+
+    def do_nothing_result(self, text, icon=extension_icon):
         return RenderResultListAction([
-                ExtensionResultItem(icon=extension_icon,
-                                    name=text,
-                                    on_enter=DoNothingAction())
-            ])
+            ExtensionResultItem(icon=extension_icon,
+                                name=text,
+                                on_enter=DoNothingAction())
+        ])
 
     def make_bangs_results(self, extension, search_terms: list):
         """
@@ -171,6 +197,7 @@ class OpenNewestUrlActionListener(EventListener):
         4. The first result item is still showing "! wa 2+x=" (without the last character "4" at the end)
     This is why the newest query that the user has typed is used here
     """
+
     def on_event(self, event, extension):
         dbang: DBang = event.get_data()
         newest_search_text = extension.newest_query[len(dbang.t)+1:]
@@ -187,6 +214,7 @@ class DomainIconsManager():
     Manages the website icons that are shown in each ResultItem.
     The icons are bundled in a zip file and are unpacked to a folder once. 
     """
+
     def __init__(self, zip_file, folder, dbangs, unknown_icon):
         self.folder = folder
         self.unknown_icon = unknown_icon

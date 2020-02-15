@@ -3,7 +3,7 @@
     "name": "Duckduckgo bangs",
     "description": "Duckduckgo bangs extension",
     "developer_name": "dhelmr",
-    "icon": "icons/bang.svg",
+    "icon": "icons/ddg_icon.png",
     "preferences": [
         {
             "id": "keyword",
@@ -21,9 +21,9 @@
         {
             "id": "force_download",
             "type": "select",
-            "name": "Always download bangs from DuckDuckGo on startup (~2.5MB). Turn off if you have a slow / cost-intensive connection.",
-            "default_value": "True",
-            "options": ["True", "False"]
+            "name": "Download bangs from DuckDuckGo on startup (~2.5MB). Turn off if you have a slow / cost-intensive connection.",
+            "default_value": "Always",
+            "options": ["Always", "Never"]
         }
     ]
 }
