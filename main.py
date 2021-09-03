@@ -139,6 +139,7 @@ class DBangsKeywordQueryListener(EventListener):
             items.append(ExtensionSmallResultItem(name=title,
                                                   icon=extension.icons.get_icon_path(
                                                       entry),
+                                                  highlightable=False,
                                                   on_enter=SetUserQueryAction(new_query)))
             used_urls.append(entry.url)
             counter += 1
@@ -157,8 +158,8 @@ class DBangsKeywordQueryListener(EventListener):
         if len(search_terms) > 1:
             search_text = " ".join(search_terms[1:])
             title = "{0} | {1}: Search for \"{2}\"".format(
-                dbang.t, self.make_site_title(dbang), self.escape_html(search_text))
-            # The url is not generated right away, as the search term still change
+                dbang.t, self.make_site_title(dbang), search_text)
+            # The url is not generated right away, as the search term still changes
             # The ExtensionCustomAction below will be received by OpenNewestUrlActionListener,
             # which takes the newest query that the user has typed for url generation
             action = ExtensionCustomAction(dbang, keep_app_open=True)
@@ -174,6 +175,7 @@ class DBangsKeywordQueryListener(EventListener):
                                        dbang),
                                    description=self.make_bang_description(
                                        dbang),
+                                    highlightable=False,
                                    on_enter=action)
 
     def make_site_title(self, dbang):
