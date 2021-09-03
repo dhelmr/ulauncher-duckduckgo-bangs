@@ -26,10 +26,9 @@ unknown_icon = "icons/unknown.svg"
 favicons_path = "icons/pages_colors"
 icons_zip = "icons.zip"
 
-
 class ExtensionState(Enum):
     STARTING = "Extension is starting..."
-    DBANG_LOADING_FAILED = "Could not load successfully. Please restart ulauncher. and check logs"
+    DBANG_LOADING_FAILED = "loading failed"
     READY = "ok"
 
     def __str__(self):
@@ -43,16 +42,17 @@ class DBangsExtension(Extension):
         self.subscribe(KeywordQueryEvent, DBangsKeywordQueryListener())
         self.subscribe(PreferencesEvent, PreferencesEventListener())
         self.subscribe(ItemEnterEvent, OpenNewestUrlActionListener())
+        self.force_download = False
 
-    def load_bangs_and_icons(self, force_download):
+    def load_bangs_and_icons(self):
         try:
             self.bangs = BangsManager(storage_path).get_latest(
-                force_download=force_download)
+                force_download=self.force_download)
             self.icons = DomainIconsManager(
                 icons_zip, favicons_path, self.bangs, unknown_icon)
             self.status = ExtensionState.READY
         except Exception as e:
-            print("Error while loaded the DuckDuckGo Bangs and Icons", e)
+            print("Error while loading DuckDuckGo Bangs and Icons", e)
             self.status = ExtensionState.DBANG_LOADING_FAILED
 
 
@@ -65,15 +65,19 @@ class PreferencesEventListener(EventListener):
         force_download = True
         if event.preferences["force_download"].lower() == "never":
             force_download = False
-        extension.load_bangs_and_icons(force_download)
+        extension.force_download = force_download
+        extension.load_bangs_and_icons()
 
 
 class DBangsKeywordQueryListener(EventListener):
 
     def on_event(self, event, extension):
-        # check if extension is ready, otherwise print the current status and abort
+        # check if extension is ready, if not, try to laod it again
         if extension.status is not ExtensionState.READY:
-            return make_status_result(extension)
+            extension.load_bangs_and_icons()
+            if extension.status is not ExtensionState.READY:
+                # if the extension is still not ready, return
+                return self.make_status_result(extension)
 
         argument = event.get_argument()
         extension.newest_query = argument
@@ -87,15 +91,19 @@ class DBangsKeywordQueryListener(EventListener):
 
     def make_status_result(self, extension):
         icon = extension_icon
+        text = str(extension.status)
+        description = ""
         if extension.status is ExtensionState.DBANG_LOADING_FAILED:
             icon = error_icon
-        text = str(extension.status)
-        return self.do_nothing_result(text, icon)
+            text = "Oooops! Loading ulauncher-duckduckgo-bangs failed!"
+            description = "Please restart ulauncher from a terminal and check its logs.\n"+"If this error persists, please open a ticket at\n"+"https://github.com/dhelmr/ulauncher-duckduckgo-bangs."
+        return self.do_nothing_result(text, icon, description)
 
-    def do_nothing_result(self, text, icon=extension_icon):
+    def do_nothing_result(self, text, icon=extension_icon, description=""):
         return RenderResultListAction([
             ExtensionResultItem(icon=extension_icon,
                                 name=text,
+                                description=description,
                                 on_enter=DoNothingAction())
         ])
 
