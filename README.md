@@ -1,8 +1,18 @@
 # DuckDuckGo Bangs for Ulauncher
 
-This is a extension for [Ulauncher](https://github.com/Ulauncher/Ulauncher) that allows you to browse and use [DuckDuckGo bangs](https://duckduckgo.com/bang). That way it is possible to directly access thousands of site searches from within Ulauncher.
+This is a extension for [Ulauncher](https://github.com/Ulauncher/Ulauncher) that allows you to browse and use [DuckDuckGo bangs](https://duckduckgo.com/bang). DuckDuckGo bangs are a collection of keywords (called "bangs") that let you access the search of thousands of website's directly. E.g., `gi` is the keyword for Google's image search and when you type `! gi ulauncher`, you are directly taken to the Google image search for `ulauncher`. 
 
-![bang for archlinux](docs/bang_archlinux.png)
+The idea of this extension is:
+
+1. Directly **use** the bangs from within ulauncher. You will straightforward go the site, i.e. no extra request is made to DuckDuckGo, which makes it faster to use them. Note that you need to put a space between the `!` and the bang. E.g., you can open the OpenStreetMap search for `London` by typing `! osm London`:
+
+![OpenStreetMap for "London"](docs/bang_osm_london.png)
+
+2. Offer a **search** for the available DuckDuckGo bangs. If you don't remember the keyword for a site, you can search for all bangs that are available. For example, if you want to lookup if there's a bang that can search for playlists on youtube:
+
+![Search for Youtube Playlidst Bang](docs/bang_playlist_youtube.png)
+
+You can also access the DuckDuckGo search with this extension, by using the bang `! ddg`.
 
 # Installation
 
